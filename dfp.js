@@ -1,57 +1,45 @@
 const fs = require('fs');
 
-function parseFile(inputFile, outputFile, delimiter = ';') {
-     // Check if the input file exists
-     if (!fs.existsSync(inputFile)) {
+function parseFile(inputFilePath, outputFilePath) {
+    let data;
+
+    // Reading the file
+    try {
+        data = fs.readFileSync(inputFilePath, 'utf8');
+    } catch (error) {
         return -1;
     }
 
-    // Read the input file with the correct encoding
-    const data = fs.readFileSync(inputFile, 'utf8');
+    // Split lines by newline character
+    let lines = data.split(/\r?\n/);
 
-    // Split the file data into lines (each review + sentiment)
-    let lines = data.split('\n');
+    // Ignore the first line (header)
+    lines = lines.slice(1);
 
-    // Initialize an empty array to hold the transformed data
     let transformedData = [];
 
     // Process each line
-    for (let i = 0; i < lines.length; i++) {
-        let line = lines[i].trim();
+    lines.forEach(line => {
+        let [review, sentiment] = line.split(';');
 
-        if (line === "") continue; // Skip empty lines
+        // Only process if both columns exist
+        if (review && sentiment) {
+            // Trim review to 20 characters
+            review = review.trim().slice(0, 20);
+            sentiment = sentiment.trim();
 
-        // Split the line by the delimiter (default is semicolon)
-        let columns = line.split(delimiter);
+            // Push swapped data to array
+            transformedData.push(`${sentiment};${review}`);
+        }
+    });
 
-        let review = columns[0].trim();   // The review text
-        let sentiment = columns[1].trim(); // The sentiment
-
-        // Trim the review to 20 characters
-        let trimmedReview;
-
-        if (review.length > 20) {
-            review.slice(0, 20)} else {
-                review;
-            }
-
-        // Swap the columns and join them with the delimiter
-        let transformedLine = `${sentiment};${trimmedReview}`;
-
-        // Add the transformed line to the new data
-        transformedData.push(transformedLine);
+    // Writing the transformed data back to a new file
+    try {
+        fs.writeFileSync(outputFilePath, transformedData.join('\n'), 'utf8');
+    } catch (error) {
+        return -1;
     }
 
-    // Write the output data to the file
-    // First, remove the existing file if it exists
-    if (fs.existsSync(outputFile)) {
-        fs.unlinkSync(outputFile);
-    }
-
-    // Write the transformed data to the output file, line by line
-    fs.writeFileSync(outputFile, transformedData.join('\n'), 'utf8');
-
-    // Return the number of records processed
     return transformedData.length;
 }
 
