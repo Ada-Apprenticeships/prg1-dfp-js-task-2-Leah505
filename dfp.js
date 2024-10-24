@@ -1,55 +1,33 @@
 const fs = require('fs');
 
-function parseFile(inputFilePath, outputFilePath) {
-    let data;
-
-    // Reading the file
-    try {
-        data = fs.readFileSync(inputFilePath, 'utf8');
-    } catch (error) {
+function parseFile(inputFile, outputFile, delimiter = ';') {
+    if (!fs.existsSync(inputFile)) {
         return -1;
     }
 
-    // Split lines by newline character
-    let lines = data.split(/\r?\n/);
+    if (fs.existsSync(outputFile)) {
+        fs.unlinkSync(outputFile);
+    }
 
-    // Ignore the first line (header)
-    lines = lines.slice(1);
+    const inputContent = fs.readFileSync(inputFile, "utf-8");
+    const lines = inputContent.trim().split('\n').slice(1);
+    let recordCount = 0;
 
-    let transformedData = [];
+    for (const line of lines) {
+        const columns = line.split(delimiter).map(col => col.trim());
 
-    // Process each line
-    lines.forEach(line => {
-        let [review, sentiment] = line.split(';');
-
-        // Only process if both columns exist
-        if (review && sentiment) {
-            // Trim review to 20 characters
-            review = review.trim().slice(0, 20);
-            sentiment = sentiment.trim();
-
-            // Push swapped data to array
-            transformedData.push(`${sentiment};${review}`);
+        if (columns.length === 2) {
+            const review = columns[0].substring(0, 20);
+            const sentiment = columns[1];
+            fs.appendFileSync(outputFile, `${sentiment}${delimiter}${review}\n`, "utf-8");
+            recordCount++;
         }
-    });
-
-    // Writing the transformed data back to a new file
-    try {
-        fs.writeFileSync(outputFilePath, transformedData.join('\n'), 'utf8');
-    } catch (error) {
-        return -1;
     }
 
-    return transformedData.length;
+    return recordCount;
 }
 
-
-// Example calls to the function for testing purposes
-console.log(parseFile('./datafile.csv', './outputfile.csv')); // Expected to return the total number of records exported
-console.log(parseFile('./doesnotexist.csv', './outputfile.csv')); // Expected to return -1 if file doesn't exist
-console.log(parseFile('./doesnotexist.csv', './outputfile.csv', ',')); // function should return the value: -1
-
-// Leave this code here for the automated tests
+// Code for the automated tests
 module.exports = {
   parseFile,
 }
